@@ -79,6 +79,7 @@ public class CategoryActivity extends AppCompatActivity {
 
         //////////// Loading Dialog
 
+        //Opening category dialog on clicking add button
         setCategoryDailog();
 
         Toolbar toolbar = findViewById(R.id.toolbar);
