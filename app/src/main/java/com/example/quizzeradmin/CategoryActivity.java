@@ -1,13 +1,5 @@
 package com.example.quizzeradmin;
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
-
 import android.Manifest;
 import android.app.Dialog;
 import android.content.DialogInterface;
@@ -16,15 +8,21 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -43,6 +41,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -51,7 +50,7 @@ public class CategoryActivity extends AppCompatActivity {
     // Write a message to the database
     FirebaseDatabase database = FirebaseDatabase.getInstance();
     DatabaseReference myRef = database.getReference();
-    private List<CategoryModel> list;
+    public static List<CategoryModel> list;
     private CategoryAdapter adapter;
 
 
@@ -111,19 +110,13 @@ public class CategoryActivity extends AppCompatActivity {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
-                                            myRef.child("SETS").child(list.get(position).getName()).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
-                                                @Override
-                                                public void onComplete(@NonNull Task<Void> task) {
-                                                    if (task.isSuccessful()) {
-                                                        list.remove(position);
-                                                        adapter.notifyDataSetChanged();
-                                                    } else {
-                                                        Toast.makeText(CategoryActivity.this, "Failed to delete!!", Toast.LENGTH_SHORT).show();
-                                                    }
-                                                    loadingDialog.dismiss();
 
-                                                }
-                                            });
+                                            for(String setId: list.get(position).getSets()){
+                                                myRef.child("SETS").child(setId).removeValue();
+                                            }
+                                            list.remove(position);
+                                            adapter.notifyDataSetChanged();
+                                            loadingDialog.dismiss();
 
                                         } else {
                                             Toast.makeText(CategoryActivity.this, "Failed to delete!!", Toast.LENGTH_SHORT).show();
@@ -147,8 +140,15 @@ public class CategoryActivity extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for (DataSnapshot dataSnapshot1 : dataSnapshot.getChildren()) {
+
+                    List<String> sets = new ArrayList<>();
+
+                    for (DataSnapshot dataSnapshot2 : dataSnapshot1.child("sets").getChildren()) {
+                        sets.add(dataSnapshot2.getKey());
+                    }
+
                     list.add(new CategoryModel(dataSnapshot1.child("name").getValue().toString()
-                            , Integer.parseInt(dataSnapshot1.child("sets").getValue().toString())
+                            , sets
                             , dataSnapshot1.child("url").getValue().toString()
                             , dataSnapshot1.getKey()));
                 }
@@ -181,7 +181,7 @@ public class CategoryActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.add) {
             categoryDialog.show();
             return true;
-        }else if(item.getItemId() == R.id.sign_out){
+        } else if (item.getItemId() == R.id.sign_out) {
             new AlertDialog.Builder(CategoryActivity.this, R.style.Theme_AppCompat_Light_Dialog)
                     .setTitle("Logout")
                     .setMessage("Are you sure, you want to logout?")
@@ -197,7 +197,8 @@ public class CategoryActivity extends AppCompatActivity {
                     })
                     .setNegativeButton("NO", null)
                     .setIcon(android.R.drawable.ic_dialog_alert)
-                    .show(); }
+                    .show();
+        }
 
         return super.onOptionsItemSelected(item);
     }
@@ -237,7 +238,7 @@ public class CategoryActivity extends AppCompatActivity {
         addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                if (categoryName.getText().toString().isEmpty()) {
+                if (categoryName.getText()==null || categoryName.getText().toString().isEmpty()) {
                     categoryName.setError("Required");
                     return;
                 }
@@ -347,11 +348,13 @@ public class CategoryActivity extends AppCompatActivity {
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
 
-        database.getReference().child("Categories").child("Category" + (list.size() + 1)).setValue(map).addOnCompleteListener(new OnCompleteListener<Void>() {
+        final String id = UUID.randomUUID().toString();
+
+        database.getReference().child("Categories").child(id).setValue(map).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
-                    list.add(new CategoryModel(categoryName.getText().toString(), 0, downloadUrl, "Category" + (list.size() + 1)));
+                    list.add(new CategoryModel(categoryName.getText().toString(), new ArrayList<String>(), downloadUrl, id));
                     adapter.notifyDataSetChanged();
                     categoryDialog.dismiss();
                     categoryName.setText(null);

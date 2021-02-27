@@ -63,7 +63,7 @@ public class QuestionsAdapter extends RecyclerView.Adapter<QuestionsAdapter.View
                 public void onClick(View view) {
                     Intent editIntent = new Intent(itemView.getContext(), AddQuestionActivity.class);
                     editIntent.putExtra("categoryName", category);
-                    editIntent.putExtra("setNo", list.get(position).getSet());
+                    editIntent.putExtra("setId", list.get(position).getSetId());
                     editIntent.putExtra("position", position);
                     itemView.getContext().startActivity(editIntent);
 

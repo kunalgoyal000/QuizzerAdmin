@@ -23,6 +23,7 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class SetsActivity extends AppCompatActivity {
 
@@ -32,6 +33,7 @@ public class SetsActivity extends AppCompatActivity {
     private Dialog loadingDialog;
     private String categoryName;
     private DatabaseReference myRef;
+    private List<String> sets;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,22 +60,25 @@ public class SetsActivity extends AppCompatActivity {
         list = new ArrayList<>();
         myRef=FirebaseDatabase.getInstance().getReference();
 
-        adapter = new GridAdapter(getIntent().getIntExtra("sets", 0), getIntent().getStringExtra("title"), new GridAdapter.GridListener() {
+        sets=CategoryActivity.list.get(getIntent().getIntExtra("position", 0)).getSets();
+        adapter = new GridAdapter(sets, getIntent().getStringExtra("title"), new GridAdapter.GridListener() {
             @Override
             public void addSet() {
 
                 loadingDialog.show();
 
+                final String id= UUID.randomUUID().toString();
+
                 FirebaseDatabase database = FirebaseDatabase.getInstance();
-                database.getReference().child("Categories").child(getIntent().getStringExtra("key")).child("sets").setValue(getIntent().getIntExtra("sets", 0) + 1).addOnCompleteListener(new OnCompleteListener<Void>() {
+                database.getReference().child("Categories").child(getIntent().getStringExtra("key")).child("sets").child(id).setValue("SET ID").addOnCompleteListener(new OnCompleteListener<Void>() {
                     @Override
                     public void onComplete(@NonNull Task<Void> task) {
                         if (task.isSuccessful()) {
-                            adapter.sets++;
+                            sets.add(id);
                             //list.get(getIntent().getIntExtra("position",0)).setSets(adapter.sets++);
                             adapter.notifyDataSetChanged();
                         } else {
-
+                            Toast.makeText(SetsActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
                         }
                         loadingDialog.dismiss();
                     }
@@ -82,33 +87,40 @@ public class SetsActivity extends AppCompatActivity {
 
 
             @Override
-            public void onLongClick(final int setNo) {
+            public void onLongClick(final String setId,int position) {
 
                 new AlertDialog.Builder(SetsActivity.this, R.style.Theme_AppCompat_Light_Dialog)
-                        .setTitle("Delete SET "+setNo)
+                        .setTitle("Delete SET "+position)
                         .setMessage("Are you sure, you want to delete this SET?")
                         .setPositiveButton("Delete", new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 loadingDialog.show();
-                                myRef.child("SETS").child(categoryName).child("questions").orderByChild("setNo").equalTo(setNo).addListenerForSingleValueEvent(new ValueEventListener() {
+                                myRef.child("SETS")
+                                        .child(setId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
-                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                        for (DataSnapshot dataSnapshot1 : dataSnapshot.getChildren()) {
-                                            String id = dataSnapshot1.getKey();
-                                            myRef.child("SETS").child(categoryName)
-                                                    .child("questions").child(id).removeValue();
+                                    public void onComplete(@NonNull Task<Void> task) {
+                                        if (task.isSuccessful()) {
+                                            myRef.child("Categories")
+                                                    .child(CategoryActivity.list.get(getIntent().getIntExtra("position", 0)).getKey())
+                                                    .child("sets")
+                                                    .child(setId).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                                @Override
+                                                public void onComplete(@NonNull Task<Void> task) {
+                                                    if(task.isSuccessful()){
+                                                        sets.remove(setId);
+                                                        adapter.notifyDataSetChanged();
+                                                    }else{
+                                                        Toast.makeText(SetsActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
+                                                    }
+                                                    loadingDialog.dismiss();
+                                                }
+                                            });
 
+                                        } else {
+                                            Toast.makeText(SetsActivity.this, "Something went wrong", Toast.LENGTH_SHORT).show();
+                                            loadingDialog.dismiss();
                                         }
-                                        adapter.sets--;
-                                        loadingDialog.dismiss();
-                                        adapter.notifyDataSetChanged();
-                                    }
-
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError databaseError) {
-                                        Toast.makeText(SetsActivity.this, "Something went wrong!!", Toast.LENGTH_SHORT).show();
-                                        loadingDialog.dismiss();
                                     }
                                 });
                             }

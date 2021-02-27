@@ -1,9 +1,5 @@
 package com.example.quizzeradmin;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-
 import android.app.Dialog;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -15,6 +11,10 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -31,7 +31,8 @@ public class AddQuestionActivity extends AppCompatActivity {
     private LinearLayout answers;
     private Button uploadBtn;
     private String categoryName;
-    private int setNo, position;
+    private String setId;
+    private int position;
     private QuestionModel questionModel;
     private String id;
     private Dialog loadingDialog;
@@ -61,10 +62,10 @@ public class AddQuestionActivity extends AppCompatActivity {
 
 
         categoryName = getIntent().getStringExtra("categoryName");
-        setNo = getIntent().getIntExtra("setNo", -1);
+        setId = getIntent().getStringExtra("setId");
         position = getIntent().getIntExtra("position", -1);
 
-        if (setNo == -1) {
+        if (setId == null) {
             finish();
             return;
         }
@@ -120,10 +121,10 @@ public class AddQuestionActivity extends AppCompatActivity {
         for (int i = 0; i < option.getChildCount(); i++) {
 
             EditText answer = (EditText) answers.getChildAt(i);
-            EditText nextAnswer=(EditText) answers.getChildAt(i+1);
+            EditText nextAnswer = (EditText) answers.getChildAt(i + 1);
             if (answer.getText().toString().isEmpty()) {
                 answer.setError("Required");
-               return;
+                return;
             }
 
             RadioButton radioButton = (RadioButton) option.getChildAt(i);
@@ -155,7 +156,7 @@ public class AddQuestionActivity extends AppCompatActivity {
         map.put("optionC", ((EditText) answers.getChildAt(2)).getText().toString());
         map.put("optionD", ((EditText) answers.getChildAt(3)).getText().toString());
         map.put("question", question.getText().toString());
-        map.put("setNo", setNo);
+        map.put("setId", setId);
 
         if (position != -1) {
             id = questionModel.getId();
@@ -165,12 +166,19 @@ public class AddQuestionActivity extends AppCompatActivity {
 
         loadingDialog.show();
         FirebaseDatabase.getInstance().getReference()
-                .child("SETS").child(categoryName).child("questions").child(id)
+                .child("SETS").child(setId).child(id)
                 .setValue(map).addOnCompleteListener(new OnCompleteListener<Void>() {
             @Override
             public void onComplete(@NonNull Task<Void> task) {
                 if (task.isSuccessful()) {
-                    questionModel = new QuestionModel(id, map.get("question").toString(), map.get("optionA").toString(), map.get("optionB").toString(), map.get("optionC").toString(), map.get("optionD").toString(), map.get("correctANS").toString(), (int) map.get("setNo"));
+                    questionModel = new QuestionModel(id,
+                            map.get("question").toString(),
+                            map.get("optionA").toString(),
+                            map.get("optionB").toString(),
+                            map.get("optionC").toString(),
+                            map.get("optionD").toString(),
+                            map.get("correctANS").toString(),
+                            map.get("setId").toString());
 
                     if (position != -1) {
                         QuestionsActivity.list.set(position, questionModel);

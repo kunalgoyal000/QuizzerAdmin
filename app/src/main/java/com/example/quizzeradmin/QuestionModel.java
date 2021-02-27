@@ -3,9 +3,9 @@ package com.example.quizzeradmin;
 public class QuestionModel {
 
     private String id,question,A,B,C,D,answer;
-    private int set;
+    private String setId;
 
-    public QuestionModel(String id, String question, String a, String b, String c, String d, String answer, int set) {
+    public QuestionModel(String id, String question, String a, String b, String c, String d, String answer, String setId) {
         this.id = id;
         this.question = question;
         A = a;
@@ -13,15 +13,15 @@ public class QuestionModel {
         C = c;
         D = d;
         this.answer = answer;
-        this.set = set;
+        this.setId = setId;
     }
 
-    public int getSet() {
-        return set;
+    public String getSetId() {
+        return setId;
     }
 
-    public void setSet(int set) {
-        this.set = set;
+    public void setSetId(String setId) {
+        this.setId = setId;
     }
 
     public String getId() {

@@ -7,13 +7,15 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import java.util.List;
+
 public class GridAdapter extends BaseAdapter {
 
-    public int sets = 0;
+    public List<String> sets;
     private String category;
     private GridListener listener;
 
-    public GridAdapter(int sets, String category,GridListener listener) {
+    public GridAdapter(List<String> sets, String category, GridListener listener) {
         this.sets = sets;
         this.category = category;
         this.listener=listener;
@@ -22,7 +24,7 @@ public class GridAdapter extends BaseAdapter {
 
     @Override
     public int getCount() {
-        return sets + 1;
+        return sets.size() + 1;
     }
 
     @Override
@@ -60,7 +62,7 @@ public class GridAdapter extends BaseAdapter {
                 } else {
                 Intent questionIntent=new Intent(viewGroup.getContext(),QuestionsActivity.class);
                 questionIntent.putExtra("category",category);
-                questionIntent.putExtra("setNo",i);
+                questionIntent.putExtra("setId",sets.get(i-1));
                 viewGroup.getContext().startActivity(questionIntent);
 
                 }
@@ -72,7 +74,7 @@ public class GridAdapter extends BaseAdapter {
             @Override
             public boolean onLongClick(View view) {
                 if(i !=0) {
-                    listener.onLongClick(i);
+                    listener.onLongClick(sets.get(i-1),i);
                 }
                 return false;
             }
@@ -84,6 +86,6 @@ public class GridAdapter extends BaseAdapter {
 
         public void addSet();
 
-        void onLongClick(int setNo);
+        void onLongClick(String setId,int position);
     }
 }

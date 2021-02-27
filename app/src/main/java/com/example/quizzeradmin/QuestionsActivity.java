@@ -5,7 +5,6 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
-import androidx.core.app.ActivityCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -39,12 +38,9 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -61,7 +57,7 @@ public class QuestionsActivity extends AppCompatActivity {
     private DatabaseReference myRef;
     private Dialog loadingDialog;
     public static final int CELL_COUNT = 6;
-    private int setNo;
+    private String setId;
     private String categoryName;
     private TextView loadingText;
 
@@ -75,8 +71,8 @@ public class QuestionsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         categoryName = getIntent().getStringExtra("category");
-        setNo = getIntent().getIntExtra("setNo", 1);
-        getSupportActionBar().setTitle(categoryName + "/set " + setNo);
+        setId = getIntent().getStringExtra("setId");
+        getSupportActionBar().setTitle(categoryName);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
 
@@ -111,7 +107,8 @@ public class QuestionsActivity extends AppCompatActivity {
                             @Override
                             public void onClick(DialogInterface dialogInterface, int i) {
                                 loadingDialog.show();
-                                myRef.child("SETS").child(categoryName).child("questions").child(id).removeValue().addOnCompleteListener(new OnCompleteListener<Void>() {
+                                myRef.child("SETS").child(setId).child(id).removeValue()
+                                        .addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
@@ -119,7 +116,6 @@ public class QuestionsActivity extends AppCompatActivity {
                                             adapter.notifyItemRemoved(position);
                                         } else {
                                             Toast.makeText(QuestionsActivity.this, "Failed to delete!!", Toast.LENGTH_SHORT).show();
-                                            loadingDialog.dismiss();
                                         }
                                         loadingDialog.dismiss();
                                     }
@@ -133,14 +129,14 @@ public class QuestionsActivity extends AppCompatActivity {
         });
         recyclerView.setAdapter(adapter);
 
-        getData(categoryName, setNo);
+        getData( setId);
 
         addBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 Intent addQuestion = new Intent(QuestionsActivity.this, AddQuestionActivity.class);
                 addQuestion.putExtra("categoryName", categoryName);
-                addQuestion.putExtra("setNo", setNo);
+                addQuestion.putExtra("setId", setId);
                 startActivity(addQuestion);
             }
         });
@@ -237,7 +233,6 @@ public class QuestionsActivity extends AppCompatActivity {
                                 String d = getCellData(row, 4, formulaEvaluator);
                                 String correctAns = getCellData(row, 5, formulaEvaluator);
                                 if (correctAns.equals(a) || correctAns.equals(b) || correctAns.equals(c) || correctAns.equals(d)) {
-                                    String id = UUID.randomUUID().toString();
 
                                     HashMap<String, Object> questionMap = new HashMap<>();
                                     questionMap.put("question", question);
@@ -246,10 +241,12 @@ public class QuestionsActivity extends AppCompatActivity {
                                     questionMap.put("optionC", c);
                                     questionMap.put("optionD", d);
                                     questionMap.put("correctANS", correctAns);
-                                    questionMap.put("setNo", setNo);
+                                    questionMap.put("setId", setId);
+
+                                    String id = UUID.randomUUID().toString();
                                     parentMap.put(id, questionMap);
 
-                                    tempList.add(new QuestionModel(id, question, a, b, c, d, correctAns, setNo));
+                                    tempList.add(new QuestionModel(id, question, a, b, c, d, correctAns, setId));
 
                                 } else {
                                     final int finalR = r;
@@ -284,7 +281,7 @@ public class QuestionsActivity extends AppCompatActivity {
 
                                 loadingText.setText("Uploading..");
                                 FirebaseDatabase.getInstance().getReference()
-                                        .child("SETS").child(categoryName).child("questions").updateChildren(parentMap).addOnCompleteListener(new OnCompleteListener<Void>() {
+                                        .child("SETS").child(setId).updateChildren(parentMap).addOnCompleteListener(new OnCompleteListener<Void>() {
                                     @Override
                                     public void onComplete(@NonNull Task<Void> task) {
                                         if (task.isSuccessful()) {
@@ -377,9 +374,9 @@ public class QuestionsActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void getData(String categoryName, final int setNo) {
+    private void getData(final String setId) {
         loadingDialog.show();
-        myRef.child("SETS").child(categoryName).child("questions").orderByChild("setNo").equalTo(setNo).addListenerForSingleValueEvent(new ValueEventListener() {
+        myRef.child("SETS").child(setId).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for (DataSnapshot dataSnapshot1 : dataSnapshot.getChildren()) {
@@ -391,7 +388,7 @@ public class QuestionsActivity extends AppCompatActivity {
                     String d = dataSnapshot1.child("optionD").getValue().toString();
                     String answer = dataSnapshot1.child("correctANS").getValue().toString();
 
-                    list.add(new QuestionModel(id, question, a, b, c, d, answer, setNo));
+                    list.add(new QuestionModel(id, question, a, b, c, d, answer, setId));
 
                 }
                 loadingDialog.dismiss();
