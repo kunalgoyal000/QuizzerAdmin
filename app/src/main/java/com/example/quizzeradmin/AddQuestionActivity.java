@@ -141,6 +141,9 @@ public class AddQuestionActivity extends AppCompatActivity {
 
         for (int i = 0; i < option.getChildCount(); i++) {
 
+            if (i == option.getChildCount() - 1) {
+                break;
+            }
             if (((EditText) answers.getChildAt(i)).getText().toString().equals(((EditText) answers.getChildAt(i + 1)).getText().toString())) {
                 ((EditText) answers.getChildAt(i)).setError("Options can't be same");
                 return;
